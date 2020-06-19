@@ -1133,6 +1133,92 @@ func TestTaskGroup_Validate(t *testing.T) {
 
 }
 
+func TestTaskGroupNetwork_Validate(t *testing.T) {
+	cases := []struct {
+		TG          *TaskGroup
+		ErrContains string
+	}{
+		{
+			TG: &TaskGroup{
+				Name: "group-static-value-too-high",
+				Networks: Networks{
+					&NetworkResource{
+						ReservedPorts: []Port{
+							{
+								Label: "too-high",
+								Value: 65536,
+							},
+						},
+					},
+				},
+			},
+			ErrContains: "greater than",
+		},
+		{
+			TG: &TaskGroup{
+				Name: "group-dynamic-value-too-high",
+				Networks: Networks{
+					&NetworkResource{
+						DynamicPorts: []Port{
+							{
+								Label: "too-high",
+								Value: 65536,
+							},
+						},
+					},
+				},
+			},
+			ErrContains: "greater than",
+		},
+		{
+			TG: &TaskGroup{
+				Name: "group-static-to-too-high",
+				Networks: Networks{
+					&NetworkResource{
+						ReservedPorts: []Port{
+							{
+								Label: "too-high",
+								To:    65536,
+							},
+						},
+					},
+				},
+			},
+			ErrContains: "greater than",
+		},
+		{
+			TG: &TaskGroup{
+				Name: "group-dynamic-to-too-high",
+				Networks: Networks{
+					&NetworkResource{
+						DynamicPorts: []Port{
+							{
+								Label: "too-high",
+								To:    65536,
+							},
+						},
+					},
+				},
+			},
+			ErrContains: "greater than",
+		},
+	}
+
+	for i := range cases {
+		tc := cases[i]
+		t.Run(tc.TG.Name, func(t *testing.T) {
+			err := tc.TG.validateNetworks()
+			t.Logf("%s -> %v", tc.TG.Name, err)
+			if tc.ErrContains == "" {
+				require.NoError(t, err)
+				return
+			}
+
+			require.Contains(t, err.Error(), tc.ErrContains)
+		})
+	}
+}
+
 func TestTask_Validate(t *testing.T) {
 	task := &Task{}
 	ephemeralDisk := DefaultEphemeralDisk()
